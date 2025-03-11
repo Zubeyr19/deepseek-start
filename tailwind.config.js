@@ -4,9 +4,11 @@ const { fontFamily } = require("tailwindcss/defaultTheme");
 module.exports = {
   darkMode: ["class"],
   content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx,css}",
-    "./app/**/*.{js,ts,jsx,tsx,css}",
+    './components/**/*.{vue,js}',
+    './views/**/*.vue',
+    './App.vue',
+    './main.js',
+    './index.html',
   ],
   theme: {
     container: {
@@ -69,10 +71,62 @@ module.exports = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "pulse-slow": {
+          '0%, 100%': { opacity: 1 },
+          '50%': { opacity: 0.5 },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "pulse-slow": "pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+      },
+      typography: {
+        DEFAULT: {
+          css: {
+            color: 'hsl(var(--foreground))',
+            a: {
+              color: 'hsl(var(--primary))',
+              '&:hover': {
+                color: 'hsl(var(--primary) / 0.8)',
+              },
+            },
+            blockquote: {
+              borderLeftColor: 'hsl(var(--muted))',
+              color: 'hsl(var(--muted-foreground))',
+            },
+            h1: { color: 'hsl(var(--foreground))' },
+            h2: { color: 'hsl(var(--foreground))' },
+            h3: { color: 'hsl(var(--foreground))' },
+            h4: { color: 'hsl(var(--foreground))' },
+            code: { color: 'hsl(var(--accent-foreground))' },
+            pre: {
+              backgroundColor: 'hsl(var(--muted))',
+              color: 'hsl(var(--muted-foreground))',
+            },
+            strong: { color: 'hsl(var(--foreground))' },
+          },
+        },
+        invert: {
+          css: {
+            color: 'hsl(var(--background))',
+            a: { color: 'hsl(var(--accent))' },
+            blockquote: {
+              borderLeftColor: 'hsl(var(--accent))',
+              color: 'hsl(var(--accent-foreground))',
+            },
+            h1: { color: 'hsl(var(--background))' },
+            h2: { color: 'hsl(var(--background))' },
+            h3: { color: 'hsl(var(--background))' },
+            h4: { color: 'hsl(var(--background))' },
+            code: { color: 'hsl(var(--background))' },
+            pre: { 
+              backgroundColor: 'hsl(var(--accent))',
+              color: 'hsl(var(--accent-foreground))',
+            },
+            strong: { color: 'hsl(var(--background))' },
+          },
+        },
       },
     },
   },

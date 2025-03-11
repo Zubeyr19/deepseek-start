@@ -1,5 +1,5 @@
 {
-  "include": ["**/*.ts", "**/*.tsx"],
+  "include": ["**/*.ts", "**/*.tsx", "app/routes/index.js", "app/routes/__root.jsx", "app/lib/utils.js", "app/frontend/components/ui/ThemeToggle.jsx", "app/frontend/components/ui/input.jsx", "app/frontend/components/ui/card.jsx", "app/frontend/components/ui/button.jsx", "app/client.jsx", "app/router.jsx", "app/routeTree.gen.js", "app/ssr.jsx", "app/routes/index.vue"],
   "compilerOptions": {
     "strict": true,
     "esModuleInterop": true,
@@ -16,7 +16,7 @@
     "baseUrl": ".",
     "paths": {
       "~/*": ["./app/*"],
-      "@/*": ["./src/*"]
+      "@/*": ["./app/*"]
     },
     "noEmit": true
   }
