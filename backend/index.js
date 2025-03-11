@@ -41,7 +41,7 @@ app.post("/api/chat", async (req, res) => {
         responseText = `Database is running. Current server time: ${dbCheck[0].current_time}`;
     } else if (message.toLowerCase().includes("latest entry")) {
         // Fetch the latest entry from a generic data table
-        const [latestEntry] = await pool.query("SELECT * FROM data_table ORDER BY created_at DESC LIMIT 1");
+        const [latestEntry] = await pool.query ("SELECT * FROM customers ORDER BY id DESC LIMIT 1"); 
         responseText = latestEntry.length > 0 
             ? `Latest entry: ${JSON.stringify(latestEntry[0])}` 
             : "No data entries found.";
@@ -56,6 +56,42 @@ app.post("/api/chat", async (req, res) => {
     console.error("Error handling chat request:", error);
     res.status(500).json({ error: "Something went wrong" });
   }
+
+
+  
+}); 
+
+//Get all customers 
+app.get("/api/customers", async (req,res)=> { 
+  try { 
+    const customers = await pool.query("SELECT * FROM customers LIMIT 100");  
+    res.json({customers}); 
+  } catch (error) { 
+    console.error("Error fetching customers:", error); 
+    res.status(500).json({ error: "Error fetching customers" });
+  }
+}); 
+
+// Get customer by ID
+app.get("/api/customers/:id", async (req, res) => {
+  try {
+    const [customer] = await pool.query(
+      "SELECT * FROM customers WHERE id = ?", 
+      [req.params.id]
+    );
+    
+    if (customer.length === 0) {
+      return res.status(404).json({ error: "Customer not found" });
+    }
+    
+    res.json({ customer: customer[0] });
+  } catch (error) {
+    console.error("Error fetching customer:", error);
+    res.status(500).json({ error: "Failed to fetch customer" });
+  }
 });
+
+//the endpoints above can be used by updating the frontend. f
+
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`)); 

@@ -85,8 +85,17 @@ export default {
     // Component state
     const messages = ref([]);
     const input = ref('');
-    const premise = ref('You are a software developer with a focus on Vue/JavaScript.\rKeep your answer simple and straight forward.');
-    const loading = ref(false);
+    const premise = ref(`You are a software developer assistant with access to company data.
+
+You can retrieve data by mentioning specific data types in your response:
+- "Database Status" - Check if the database is running
+- "Latest Entry" - Get the most recent entry from the database
+- "Table Count" - Get the number of rows in the data table
+- "DB Test" - Test the database connection
+
+When a user asks for information that requires accessing the database, indicate you'll check that information.
+
+Keep your answer simple and straight forward.`);    const loading = ref(false);
 
     // Function to process messages and extract thinking content
     const messagesWithThinkingSplit = computed(() => {
@@ -163,76 +172,155 @@ export default {
 
     // Form submission handler
     const handleSubmit = async () => {
-      if (!input.value.trim() || loading.value) return;
-      
-      loading.value = true;
-      
-      const userInput = input.value;
-      input.value = ""; // Clear input field immediately
-      
-      const messagesWithInput = [
-        ...messages.value,
-        { role: "system", content: premise.value },
-        { role: "user", content: userInput },
-      ];
-      
-      messages.value = messagesWithInput;
+  if (!input.value.trim() || loading.value) return;
+  
+  loading.value = true;
+  
+  const userInput = input.value;
+  input.value = ""; // Clear input field immediately
+  
+  const messagesWithInput = [
+    ...messages.value,
+    { role: "system", content: premise.value },
+    { role: "user", content: userInput },
+  ];
+  
+  messages.value = messagesWithInput;
 
-      try {
-        const stream = await chat({ messages: messagesWithInput });
-        if (stream.body) {
-          let assistantResponse = "";
-          const reader = stream.body.getReader();
-          for await (const value of streamAsyncIterator(reader)) {
-            const {
-              message: { content },
-            } = JSON.parse(value);
-            assistantResponse += content;
-            messages.value = [
-              ...messagesWithInput,
-              {
-                role: "assistant",
-                content: assistantResponse,
-              },
-            ];
-          }
-        }
-      } catch (error) {
-        console.error("Error in chat:", error);
-        // Show error message to user
+  try {
+    const stream = await chat({ messages: messagesWithInput });
+    if (stream.body) {
+      let assistantResponse = "";
+      const reader = stream.body.getReader();
+      
+      for await (const value of streamAsyncIterator(reader)) {
+        const {
+          message: { content },
+        } = JSON.parse(value);
+        
+        assistantResponse += content;
+        
+        // Update message in real-time as streaming occurs
         messages.value = [
           ...messagesWithInput,
           {
             role: "assistant",
-            content: "Sorry, there was an error processing your request. Please try again. Make sure Ollama is running locally at http://127.0.0.1:11434.",
+            content: assistantResponse,
           },
         ];
-      } finally {
-        loading.value = false;
       }
-    };
+      
+      // After streaming is complete, check if the response mentions database operations
+      if (assistantResponse.toLowerCase().includes("check the database") ||
+          assistantResponse.toLowerCase().includes("retrieve data")) {
+        
+        // Parse what data they're asking for
+        let dataType = null;
+        
+        if (assistantResponse.toLowerCase().includes("database status")) {
+          dataType = "databaseStatus";
+        } else if (assistantResponse.toLowerCase().includes("latest entry")) {
+          dataType = "latestEntry";
+        } else if (assistantResponse.toLowerCase().includes("table count")) {
+          dataType = "tableCount";
+        } else if (assistantResponse.toLowerCase().includes("db test")) {
+          dataType = "dbTest";
+        }
+        
+        if (dataType) {
+          try {
+            // Show loading message
+            messages.value = [
+              ...messagesWithInput,
+              {
+                role: "assistant",
+                content: `${assistantResponse}\n\nI'll check that information for you...`,
+              },
+            ];
+            
+            // Fetch the data
+            const data = await fetchInternalData(dataType);
+            
+            // Update the message with the data
+            messages.value = [
+              ...messagesWithInput,
+              {
+                role: "assistant",
+                content: `${assistantResponse}\n\nI've retrieved the information: ${JSON.stringify(data, null, 2)}`,
+              },
+            ];
+          } catch (error) {
+            console.error("Error handling API response:", error);
+            // Show error message but keep the original response
+            messages.value = [
+              ...messagesWithInput,
+              {
+                role: "assistant",
+                content: `${assistantResponse}\n\nI tried to retrieve the data but encountered an error: ${error.message}`,
+              },
+            ];
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error in chat:", error);
+    // Show error message to user
+    messages.value = [
+      ...messagesWithInput,
+      {
+        role: "assistant",
+        content: "Sorry, there was an error processing your request. Please try again. Make sure Ollama is running locally at http://127.0.0.1:11434.",
+      },
+    ];
+  } finally {
+    loading.value = false;
+  }
+};
 
     // Additional method to access data from internal systems (if needed)
     const fetchInternalData = async () => {
       try {
-        const response = await fetch("http://localhost:3000/api/data");
-        const data = await response.json();
-        return data;
+       let endpoint; 
+
+       switch(dataType){
+        case "databaseStatus":
+        
+          return fetch("http://localhost:3003/api/chat", { 
+            method: "POST", 
+            headers: { "Content-Type": "application/json" }, 
+            body: JSON.stringify({message: "database status" }) 
+          }).then(res => res.json()); 
+
+          case 'dbTest': 
+          endpoint = "http://localhost:3003/api/test-db" 
+          break; 
+
+          default: 
+          endpoint = `http://localhost:3003/api/${dataType}`
+
+       } 
+
+       const response = await fetch(endpoint); 
+
+       if(!response.ok) {
+        throw new Error(`Failed to fetch ${dataType}`);
+       }
+
+       return await response.json();
       } catch (error) {
-        console.error("Error fetching internal data:", error);
-        return null;
+        console.error(`Error fetching ${dataType}:`, error);
+        return { success: false, error: error.message };
       }
     };
 
     // Additional method to perform actions (if needed)
     const performAction = async (actionType, params) => {
       try {
-        const response = await fetch(`http://localhost:3000/api/actions/${actionType}`, {
+        const response = await fetch("http://localhost:3003/api/chat", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(params),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: params }),
         });
         return await response.json();
       } catch (error) {

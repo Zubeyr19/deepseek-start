@@ -52,7 +52,8 @@ router.beforeEach((to, from, next) => {
   next()
 })
 
-export default router
+export default router  
+
 </script>
 
 <!-- main.ts - Entry point -->
