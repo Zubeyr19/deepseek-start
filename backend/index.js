@@ -2,7 +2,8 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import axios from "axios";
-import pool from "./db.js"; // Ensure this is the correct path
+import pool from "./db.js"; // Ensure this is the correct path 
+import {customers,products,orders} from "./mockdata.js";
 
 dotenv.config();
 
@@ -29,7 +30,7 @@ app.get("/api/test-db", async (req, res) => {
 });
 
 // **Chat API Route**
-app.post("/api/chat", async (req, res) => {
+app.post("/api/chat", async (req, res) => { 
   const { message } = req.body;
 
   try {
@@ -58,13 +59,22 @@ app.post("/api/chat", async (req, res) => {
   }
 
 
-  
+
 }); 
 
 //Get all customers 
 app.get("/api/customers", async (req,res)=> { 
-  try { 
-    const customers = await pool.query("SELECT * FROM customers LIMIT 100");  
+  try {  
+    const location = req.query.location; 
+    let query = "SELECT * FROM customers" 
+    let params = []; 
+    if (location) { 
+      query += " WHERE location = ?";  
+      params.push(location); 
+    } 
+    // Add limit  
+    query +=" LIMIT 100"; 
+    const customers = await pool.query("query, params");   
     res.json({customers}); 
   } catch (error) { 
     console.error("Error fetching customers:", error); 
@@ -74,7 +84,7 @@ app.get("/api/customers", async (req,res)=> {
 
 // Get customer by ID
 app.get("/api/customers/:id", async (req, res) => {
-  try {
+  try {  
     const [customer] = await pool.query(
       "SELECT * FROM customers WHERE id = ?", 
       [req.params.id]
@@ -89,6 +99,25 @@ app.get("/api/customers/:id", async (req, res) => {
     console.error("Error fetching customer:", error);
     res.status(500).json({ error: "Failed to fetch customer" });
   }
+});  
+
+// Get all products
+app.get("/api/products", (req, res) => {
+  // Support filtering by category
+  const category = req.query.category;
+  if (category) {
+    const filtered = products.filter(p => p.category.toLowerCase() === category.toLowerCase());
+    return res.json({ products: filtered });
+  }
+  res.json({ products });
+});
+
+
+
+// Get customer orders
+app.get("/api/customers/:id/orders", (req, res) => {
+  const customerOrders = orders.filter(o => o.customerId === req.params.id);
+  res.json({ orders: customerOrders });
 });
 
 //the endpoints above can be used by updating the frontend. f
