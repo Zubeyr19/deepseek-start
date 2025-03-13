@@ -33,10 +33,13 @@ app.get("/api/test-db", async (req, res) => {
 app.post("/api/chat", async (req, res) => { 
   const { message } = req.body;
 
-  try {
-    let responseText = "I didn't understand that.";
+  try {  
+    //Parse the message to determine what data to fetch 
+    
+  const message = message.toLowerCase(); 
+    let responseText = "I dont have have the information you are looking for.";
 
-    if (message.toLowerCase().includes("database status")) {
+    if (lowerMsg.includes("datanase statis")) {
         // Check if the database is reachable
         const [dbCheck] = await pool.query("SELECT NOW() AS current_time");
         responseText = `Database is running. Current server time: ${dbCheck[0].current_time}`;
@@ -50,6 +53,46 @@ app.post("/api/chat", async (req, res) => {
         // Get the number of rows in a specific table
         const [rowCount] = await pool.query("SELECT COUNT(*) AS total FROM data_table");
         responseText = `Total entries in data_table: ${rowCount[0].total}`;
+    } 
+
+    else if (lowerMsg.includes("customer") || lowerMsg.includes("client")) { 
+      if (lowerMsg.includes("list") || lowerMsg.includes("all")) { 
+        responseText = 'Here are our customers: ${JSON.stringify(customers.map(c => c.name))}'; 
+        // use mockdata for new york customers  
+        const nyCustomers = customers.filter(c => c.location === "New York"); 
+        responseText ='Customers in New York: ${JSON.stringify(nyCustomers.map(c => c.name))}'; 
+      }
+    } 
+    else if (lowerMsg.includes("customer") || lowerMsg.includes("client")) {  
+      if (lowerMsg.includes("list") || lowerMsg.includes("all")) { 
+        responseText = 'Here are our customers: ${JSON.stringify(customers.map(c => c.name))}';  
+      } else if (lowerMsg.includes("new york")) { 
+        const nyCustomers = customers.filter(c => c.location === "New York"); 
+        responseText ='Customers in New York: ${JSON.stringify(nyCustomers.map(c => c.name))}'; 
+      }
+    } 
+    // product queries  
+    else if (lowerMsg.includes("product") || lowerMsg.includes("service")) { 
+      if (lowerMsg.includes("software")) { 
+        // request for software products  
+        const softwareProducts = products.filter(p => p.category === "Software"); 
+        responseText = 'Software products: ${JSON.stringify(softwareProducts.map(p => p.name))}'; 
+      } else { 
+        // request for all products 
+        responseText = 'Our products: ${JSON.stringify(products.map(p => p.name))}';
+      } 
+    }  
+
+    // order queries 
+    else if (lowerMsg.includes("order") || lowerMsg.includes("sales")) { 
+      if(lowerMsg.includes("recent") || lowerMsg.includes("latest")) {  
+        // request most recent order 
+        const sortedOrders = [...orders].sort((a, b) => new Date(b.date) - new Date(a.date)); 
+        const latestOrder = sortedOrders[0];  
+        const customer = customers.find(c => c.id === latestOrder.customerId);  
+        responseText = `Most recent order: ${JSON.stringify(latestOrder)}`;  
+      }
+      
     }
 
     res.json({ response: responseText });
